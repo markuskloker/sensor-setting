@@ -120,5 +120,5 @@ self.addEventListener('fetch', event => {
 // Background Sync für Daten-Synchronisation
 self.addEventListener('sync', event => {
   console.log('[SW] Background Sync:', event.tag);
-  
-  if (event
+  // Placeholder – real logic would go here
+});
