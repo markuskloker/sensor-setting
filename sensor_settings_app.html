@@ -703,287 +703,287 @@
             document.getElementById('reportSerial').value = '';
         }
 
-function createPdfReport() {
-            // Daten aus Modal lesen
-            const reportInfo = {
-                name: document.getElementById('reportName').value || "",
-                customer: document.getElementById('reportCustomer').value || "",
-                location: document.getElementById('reportLocation').value || "",
-                machine: document.getElementById('reportMachine').value || "",
-                serialNumber: document.getElementById('reportSerial').value || ""
-            };
-            
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            // Farben definieren
-            const colors = {
-                liebherrBlue: [0, 123, 255],
-                liebherrYellow: [255, 215, 0],
-                darkGray: [51, 51, 51],
-                lightGray: [248, 249, 250],
-                success: [40, 167, 69],
-                error: [220, 53, 69],
-                border: [221, 221, 221]
-            };
-            
-            // Header mit Liebherr-Design
-            doc.setFillColor(...colors.liebherrYellow);
-            doc.rect(0, 0, 210, 40, 'F');
-            
-            // Liebherr Logo simulieren
-            doc.setFillColor(...colors.darkGray);
-            doc.rect(15, 8, 60, 12, 'F');
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(255, 255, 255);
-            doc.text('LIEBHERR', 45, 17);
-            
-            // Haupttitel
-            doc.setTextColor(...colors.darkGray);
-            doc.setFontSize(18);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Sensor Messwerte Report', 15, 30);
-            
-            // Datum
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-            doc.text(`Erstellt am: ${new Date().toLocaleDateString('de-DE', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            })} um ${new Date().toLocaleTimeString('de-DE', {
-                hour: '2-digit',
-                minute: '2-digit'
-            })}`, 15, 37);
-            
-            let yPos = 55;
-            
-            // Informationsbox mit Rahmen
-            if (reportInfo.name || reportInfo.customer || reportInfo.location || reportInfo.machine || reportInfo.serialNumber) {
-                doc.setFillColor(...colors.lightGray);
-                doc.rect(15, yPos - 5, 180, 40, 'F');
-                doc.setDrawColor(...colors.border);
-                doc.rect(15, yPos - 5, 180, 40, 'S');
-                
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...colors.liebherrBlue);
-                doc.text('📋 Prüfinformationen', 20, yPos + 5);
-                
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(...colors.darkGray);
-                
-                let infoYPos = yPos + 15;
-                const leftCol = 25;
-                const rightCol = 110;
-                
-                if (reportInfo.name) {
-                    doc.text(`👤 Prüfer: ${reportInfo.name}`, leftCol, infoYPos);
-                    infoYPos += 6;
-                }
-                if (reportInfo.customer) {
-                    doc.text(`🏢 Kunde: ${reportInfo.customer}`, leftCol, infoYPos);
-                    infoYPos += 6;
-                }
-                if (reportInfo.location) {
-                    doc.text(`📍 Ort: ${reportInfo.location}`, rightCol, yPos + 15);
-                }
-                if (reportInfo.machine) {
-                    doc.text(`🏗️ Maschine: ${reportInfo.machine}`, rightCol, yPos + 21);
-                }
-                if (reportInfo.serialNumber) {
-                    doc.text(`🔢 S/N: ${reportInfo.serialNumber}`, rightCol, yPos + 27);
-                }
-                
-                yPos += 50;
-            }
-            
-            // Zusammenfassung
-            const validMeasurements = measurements.filter(m => m.actualValue && sensors.find(s => s.id === m.sensorId));
-            const okMeasurements = validMeasurements.filter(m => {
-                const sensor = sensors.find(s => s.id === m.sensorId);
-                return Math.abs(m.actualValue - sensor.setpoint) <= sensor.tolerance;
-            });
-            
-            doc.setFillColor(...colors.liebherrBlue);
-            doc.rect(15, yPos, 180, 25, 'F');
-            
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(255, 255, 255);
-            doc.text('📊 Messergebnis Übersicht', 20, yPos + 10);
-            
-            doc.setFontSize(11);
-            doc.text(`Gesamt: ${validMeasurements.length} Sensoren`, 20, yPos + 18);
-            doc.text(`✅ OK: ${okMeasurements.length}`, 80, yPos + 18);
-            doc.text(`❌ Fehler: ${validMeasurements.length - okMeasurements.length}`, 130, yPos + 18);
-            
-            yPos += 35;
-            
-            // Tabellen-Header
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(...colors.darkGray);
-            doc.text('📈 Detaillierte Messwerte', 15, yPos);
-            yPos += 10;
-            
-            // Tabelle mit professionellem Design
-            const headers = ['Sensor', 'Eingabe', 'Ist (mm)', 'Ist (mA)', 'Soll', 'Δ (mm)', 'Status'];
-            const colWidths = [25, 25, 22, 22, 20, 20, 25];
-            const colPositions = [15, 40, 65, 87, 109, 129, 149];
-            
-            // Header-Hintergrund
-            doc.setFillColor(...colors.darkGray);
-            doc.rect(15, yPos, 174, 8, 'F');
-            
-            // Header-Text
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(255, 255, 255);
-            headers.forEach((header, i) => {
-                doc.text(header, colPositions[i] + 2, yPos + 6);
-            });
-            
-            yPos += 8;
-            
-            // Tabellenzeilen
-            doc.setFont('helvetica', 'normal');
-            let rowIndex = 0;
-            
-            validMeasurements.forEach(measurement => {
-                const sensor = sensors.find(s => s.id === measurement.sensorId);
-                const deviation = measurement.actualValue - sensor.setpoint;
-                const isWithinTolerance = Math.abs(deviation) <= sensor.tolerance;
-                
-                // Istwert in mA berechnen
-                let actualValueInMA = 0;
-                const valueRange = sensor.maxValue - sensor.minValue;
-                const signalRange = sensor.maxSignal - sensor.minSignal;
-                if (valueRange !== 0) {
-                    const normalizedValue = (measurement.actualValue - sensor.minValue) / valueRange;
-                    actualValueInMA = sensor.minSignal + (normalizedValue * signalRange);
-                }
-                
-                // Zeilen-Hintergrund (abwechselnd)
-                if (rowIndex % 2 === 1) {
-                    doc.setFillColor(...colors.lightGray);
-                    doc.rect(15, yPos, 174, 8, 'F');
-                }
-                
-                // Zeilen-Rahmen
-                doc.setDrawColor(...colors.border);
-                doc.rect(15, yPos, 174, 8, 'S');
-                
-                // Status-spezifische Hintergrundfarbe für Status-Spalte
-                const statusBgColor = isWithinTolerance ? colors.success : colors.error;
-                doc.setFillColor(statusBgColor[0], statusBgColor[1], statusBgColor[2], 0.2);
-                doc.rect(colPositions[6], yPos, colWidths[6], 8, 'F');
-                
-                // Daten
-                const rowData = [
-                    sensor.name,
-                    `${measurement.inputValue} ${measurement.inputUnit}`,
-                    measurement.actualValue.toFixed(2),
-                    actualValueInMA.toFixed(2),
-                    sensor.setpoint.toFixed(1),
-                    deviation > 0 ? `+${deviation.toFixed(2)}` : deviation.toFixed(2),
-                    isWithinTolerance ? '✅ OK' : '❌ FEHLER'
-                ];
-                
-                doc.setFontSize(8);
-                doc.setTextColor(...colors.darkGray);
-                
-                rowData.forEach((cell, i) => {
-                    if (i === 6) { // Status-Spalte
-                        doc.setTextColor(isWithinTolerance ? 0 : 139, isWithinTolerance ? 139 : 0, 0);
-                        doc.setFont('helvetica', 'bold');
-                    } else if (i === 5) { // Abweichung
-                        doc.setTextColor(isWithinTolerance ? ...colors.success : ...colors.error);
-                        doc.setFont('helvetica', 'bold');
-                    } else {
-                        doc.setTextColor(...colors.darkGray);
-                        doc.setFont('helvetica', 'normal');
-                    }
+        function createPdfReport() {
+                    // Daten aus Modal lesen
+                    const reportInfo = {
+                        name: document.getElementById('reportName').value || "",
+                        customer: document.getElementById('reportCustomer').value || "",
+                        location: document.getElementById('reportLocation').value || "",
+                        machine: document.getElementById('reportMachine').value || "",
+                        serialNumber: document.getElementById('reportSerial').value || ""
+                    };
                     
-                    doc.text(cell, colPositions[i] + 2, yPos + 6);
-                });
-                
-                yPos += 8;
-                rowIndex++;
-                
-                // Neue Seite wenn nötig
-                if (yPos > 270) {
-                    doc.addPage();
-                    yPos = 30;
-                    rowIndex = 0;
-                }
-            });
-            
-            // Justieranweisungen
-            if (validMeasurements.some(m => {
-                const sensor = sensors.find(s => s.id === m.sensorId);
-                return Math.abs(m.actualValue - sensor.setpoint) > sensor.tolerance;
-            })) {
-                yPos += 10;
-                
-                doc.setFillColor(255, 243, 205); // Warnung-Hintergrund
-                doc.rect(15, yPos, 180, 5, 'F');
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(138, 109, 59);
-                doc.text('⚠️ Justieranweisungen', 20, yPos + 4);
-                yPos += 8;
-                
-                validMeasurements.forEach(measurement => {
-                    const sensor = sensors.find(s => s.id === measurement.sensorId);
-                    const deviation = measurement.actualValue - sensor.setpoint;
-                    const isWithinTolerance = Math.abs(deviation) <= sensor.tolerance;
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
                     
-                    if (!isWithinTolerance) {
-                        doc.setFontSize(9);
+                    // Farben definieren
+                    const colors = {
+                        liebherrBlue: [0, 123, 255],
+                        liebherrYellow: [255, 215, 0],
+                        darkGray: [51, 51, 51],
+                        lightGray: [248, 249, 250],
+                        success: [40, 167, 69],
+                        error: [220, 53, 69],
+                        border: [221, 221, 221]
+                    };
+                    
+                    // Header mit Liebherr-Design
+                    doc.setFillColor(...colors.liebherrYellow);
+                    doc.rect(0, 0, 210, 40, 'F');
+                    
+                    // Liebherr Logo simulieren
+                    doc.setFillColor(...colors.darkGray);
+                    doc.rect(15, 8, 60, 12, 'F');
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(255, 255, 255);
+                    doc.text('LIEBHERR', 45, 17);
+                    
+                    // Haupttitel
+                    doc.setTextColor(...colors.darkGray);
+                    doc.setFontSize(18);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Sensor Messwerte Report', 15, 30);
+                    
+                    // Datum
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(`Erstellt am: ${new Date().toLocaleDateString('de-DE', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    })} um ${new Date().toLocaleTimeString('de-DE', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })}`, 15, 37);
+                    
+                    let yPos = 55;
+                    
+                    // Informationsbox mit Rahmen
+                    if (reportInfo.name || reportInfo.customer || reportInfo.location || reportInfo.machine || reportInfo.serialNumber) {
+                        doc.setFillColor(...colors.lightGray);
+                        doc.rect(15, yPos - 5, 180, 40, 'F');
+                        doc.setDrawColor(...colors.border);
+                        doc.rect(15, yPos - 5, 180, 40, 'S');
+                        
+                        doc.setFontSize(12);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(...colors.liebherrBlue);
+                        doc.text('📋 Prüfinformationen', 20, yPos + 5);
+                        
+                        doc.setFontSize(10);
                         doc.setFont('helvetica', 'normal');
                         doc.setTextColor(...colors.darkGray);
                         
-                        let instruction = '';
-                        if (deviation < 0) {
-                            instruction = `${sensor.name}: Sensor ${Math.abs(deviation).toFixed(2)} mm nach außen justieren`;
-                        } else {
-                            instruction = `${sensor.name}: Sensor ${deviation.toFixed(2)} mm nach innen justieren`;
+                        let infoYPos = yPos + 15;
+                        const leftCol = 25;
+                        const rightCol = 110;
+                        
+                        if (reportInfo.name) {
+                            doc.text(`👤 Prüfer: ${reportInfo.name}`, leftCol, infoYPos);
+                            infoYPos += 6;
+                        }
+                        if (reportInfo.customer) {
+                            doc.text(`🏢 Kunde: ${reportInfo.customer}`, leftCol, infoYPos);
+                            infoYPos += 6;
+                        }
+                        if (reportInfo.location) {
+                            doc.text(`📍 Ort: ${reportInfo.location}`, rightCol, yPos + 15);
+                        }
+                        if (reportInfo.machine) {
+                            doc.text(`🏗️ Maschine: ${reportInfo.machine}`, rightCol, yPos + 21);
+                        }
+                        if (reportInfo.serialNumber) {
+                            doc.text(`🔢 S/N: ${reportInfo.serialNumber}`, rightCol, yPos + 27);
                         }
                         
-                        doc.text(`🔧 ${instruction}`, 20, yPos);
-                        yPos += 6;
+                        yPos += 50;
+                    }
+                    
+                    // Zusammenfassung
+                    const validMeasurements = measurements.filter(m => m.actualValue && sensors.find(s => s.id === m.sensorId));
+                    const okMeasurements = validMeasurements.filter(m => {
+                        const sensor = sensors.find(s => s.id === m.sensorId);
+                        return Math.abs(m.actualValue - sensor.setpoint) <= sensor.tolerance;
+                    });
+                    
+                    doc.setFillColor(...colors.liebherrBlue);
+                    doc.rect(15, yPos, 180, 25, 'F');
+                    
+                    doc.setFontSize(14);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(255, 255, 255);
+                    doc.text('📊 Messergebnis Übersicht', 20, yPos + 10);
+                    
+                    doc.setFontSize(11);
+                    doc.text(`Gesamt: ${validMeasurements.length} Sensoren`, 20, yPos + 18);
+                    doc.text(`✅ OK: ${okMeasurements.length}`, 80, yPos + 18);
+                    doc.text(`❌ Fehler: ${validMeasurements.length - okMeasurements.length}`, 130, yPos + 18);
+                    
+                    yPos += 35;
+                    
+                    // Tabellen-Header
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(...colors.darkGray);
+                    doc.text('📈 Detaillierte Messwerte', 15, yPos);
+                    yPos += 10;
+                    
+                    // Tabelle mit professionellem Design
+                    const headers = ['Sensor', 'Eingabe', 'Ist (mm)', 'Ist (mA)', 'Soll', 'Δ (mm)', 'Status'];
+                    const colWidths = [25, 25, 22, 22, 20, 20, 25];
+                    const colPositions = [15, 40, 65, 87, 109, 129, 149];
+                    
+                    // Header-Hintergrund
+                    doc.setFillColor(...colors.darkGray);
+                    doc.rect(15, yPos, 174, 8, 'F');
+                    
+                    // Header-Text
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(255, 255, 255);
+                    headers.forEach((header, i) => {
+                        doc.text(header, colPositions[i] + 2, yPos + 6);
+                    });
+                    
+                    yPos += 8;
+                    
+                    // Tabellenzeilen
+                    doc.setFont('helvetica', 'normal');
+                    let rowIndex = 0;
+                    
+                    validMeasurements.forEach(measurement => {
+                        const sensor = sensors.find(s => s.id === measurement.sensorId);
+                        const deviation = measurement.actualValue - sensor.setpoint;
+                        const isWithinTolerance = Math.abs(deviation) <= sensor.tolerance;
                         
+                        // Istwert in mA berechnen
+                        let actualValueInMA = 0;
+                        const valueRange = sensor.maxValue - sensor.minValue;
+                        const signalRange = sensor.maxSignal - sensor.minSignal;
+                        if (valueRange !== 0) {
+                            const normalizedValue = (measurement.actualValue - sensor.minValue) / valueRange;
+                            actualValueInMA = sensor.minSignal + (normalizedValue * signalRange);
+                        }
+                        
+                        // Zeilen-Hintergrund (abwechselnd)
+                        if (rowIndex % 2 === 1) {
+                            doc.setFillColor(...colors.lightGray);
+                            doc.rect(15, yPos, 174, 8, 'F');
+                        }
+                        
+                        // Zeilen-Rahmen
+                        doc.setDrawColor(...colors.border);
+                        doc.rect(15, yPos, 174, 8, 'S');
+                        
+                        // Status-spezifische Hintergrundfarbe für Status-Spalte
+                        const statusBgColor = isWithinTolerance ? colors.success : colors.error;
+                        doc.setFillColor(statusBgColor[0], statusBgColor[1], statusBgColor[2], 0.2);
+                        doc.rect(colPositions[6], yPos, colWidths[6], 8, 'F');
+                        
+                        // Daten
+                        const rowData = [
+                            sensor.name,
+                            `${measurement.inputValue} ${measurement.inputUnit}`,
+                            measurement.actualValue.toFixed(2),
+                            actualValueInMA.toFixed(2),
+                            sensor.setpoint.toFixed(1),
+                            deviation > 0 ? `+${deviation.toFixed(2)}` : deviation.toFixed(2),
+                            isWithinTolerance ? '✅ OK' : '❌ FEHLER'
+                        ];
+                        
+                        doc.setFontSize(8);
+                        doc.setTextColor(...colors.darkGray);
+                        
+                        rowData.forEach((cell, i) => {
+                            if (i === 6) { // Status-Spalte
+                                doc.setTextColor(isWithinTolerance ? 0 : 139, isWithinTolerance ? 139 : 0, 0);
+                                doc.setFont('helvetica', 'bold');
+                            } else if (i === 5) { // Abweichung
+                                doc.setTextColor(isWithinTolerance ? ...colors.success : ...colors.error);
+                                doc.setFont('helvetica', 'bold');
+                            } else {
+                                doc.setTextColor(...colors.darkGray);
+                                doc.setFont('helvetica', 'normal');
+                            }
+                            
+                            doc.text(cell, colPositions[i] + 2, yPos + 6);
+                        });
+                        
+                        yPos += 8;
+                        rowIndex++;
+                        
+                        // Neue Seite wenn nötig
                         if (yPos > 270) {
                             doc.addPage();
                             yPos = 30;
+                            rowIndex = 0;
                         }
+                    });
+                    
+                    // Justieranweisungen
+                    if (validMeasurements.some(m => {
+                        const sensor = sensors.find(s => s.id === m.sensorId);
+                        return Math.abs(m.actualValue - sensor.setpoint) > sensor.tolerance;
+                    })) {
+                        yPos += 10;
+                        
+                        doc.setFillColor(255, 243, 205); // Warnung-Hintergrund
+                        doc.rect(15, yPos, 180, 5, 'F');
+                        doc.setFontSize(12);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(138, 109, 59);
+                        doc.text('⚠️ Justieranweisungen', 20, yPos + 4);
+                        yPos += 8;
+                        
+                        validMeasurements.forEach(measurement => {
+                            const sensor = sensors.find(s => s.id === measurement.sensorId);
+                            const deviation = measurement.actualValue - sensor.setpoint;
+                            const isWithinTolerance = Math.abs(deviation) <= sensor.tolerance;
+                            
+                            if (!isWithinTolerance) {
+                                doc.setFontSize(9);
+                                doc.setFont('helvetica', 'normal');
+                                doc.setTextColor(...colors.darkGray);
+                                
+                                let instruction = '';
+                                if (deviation < 0) {
+                                    instruction = `${sensor.name}: Sensor ${Math.abs(deviation).toFixed(2)} mm nach außen justieren`;
+                                } else {
+                                    instruction = `${sensor.name}: Sensor ${deviation.toFixed(2)} mm nach innen justieren`;
+                                }
+                                
+                                doc.text(`🔧 ${instruction}`, 20, yPos);
+                                yPos += 6;
+                                
+                                if (yPos > 270) {
+                                    doc.addPage();
+                                    yPos = 30;
+                                }
+                            }
+                        });
                     }
-                });
-            }
-            
-            // Footer
-            const pageCount = doc.internal.getNumberOfPages();
-            for (let i = 1; i <= pageCount; i++) {
-                doc.setPage(i);
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(128, 128, 128);
-                doc.text(`Seite ${i} von ${pageCount}`, 15, 290);
-                doc.text('LIEBHERR - Sensor Einstellungs-App', 105, 290, { align: 'center' });
-                doc.text(`Erstellt am ${new Date().toLocaleDateString('de-DE')}`, 195, 290, { align: 'right' });
-            }
-            
-            // Speichern
-            const fileName = `LIEBHERR_Sensor_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-            doc.save(fileName);
-            
-            // Modal schließen
-            closePdfModal();
-        }
+                    
+                    // Footer
+                    const pageCount = doc.internal.getNumberOfPages();
+                    for (let i = 1; i <= pageCount; i++) {
+                        doc.setPage(i);
+                        doc.setFontSize(8);
+                        doc.setFont('helvetica', 'normal');
+                        doc.setTextColor(128, 128, 128);
+                        doc.text(`Seite ${i} von ${pageCount}`, 15, 290);
+                        doc.text('LIEBHERR - Sensor Einstellungs-App', 105, 290, { align: 'center' });
+                        doc.text(`Erstellt am ${new Date().toLocaleDateString('de-DE')}`, 195, 290, { align: 'right' });
+                    }
+                    
+                    // Speichern
+                    const fileName = `LIEBHERR_Sensor_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+                    doc.save(fileName);
+                    
+                    // Modal schließen
+                    closePdfModal();
+                }
 
         // Chart-Funktionen - Horizontal Bar Chart
         let chart = null;
