@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liebherr Sensor Einstellungen - Offline</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#007bff">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Sensor App">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .logo {
+            height: 60px;
+            width: auto;
+        }
+
+        .offline-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            z-index: 1000;
+        }
+
+        .online {
+            background-color: #28a745;
+        }
+
+        .offline {
+            background-color: #dc3545;
+        }
+
+        h2 {
+            color: #444;
+            margin: 30px 0 15px 0;
+            font-size: 1.8em;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        .value-ok {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .value-error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .button-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .input-unit {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .unit-selector {
+            width: 60px;
+            font-size: 12px;
+        }
+
+        .measurement-input {
+            flex: 1;
+        }
+
+        .tolerance-display {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .chart-container {
+            margin: 30px 0;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        #measurementChart {
+            width: 100%;
+            height: 500px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .modal-header {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 20px;
+            top: 20px;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .btn-modal {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            min-width: 100px;
+        }
+
+        .btn-modal-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-modal-primary:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .btn-modal-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-modal-secondary:hover {
+            background-color: #545b62;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .install-prompt {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .install-prompt button {
+            background: white;
+            color: #007bff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- Online/Offline Indicator -->
+    <div id="connectionStatus" class="offline-indicator offline">Offline</div>
+
+    <!-- Install Prompt -->
+    <div id="installPrompt" class="install-prompt">
+        📱 Diese App kann als Desktop/Mobile-App installiert werden!
+        <button onclick="installApp()">Installieren</button>
+        <button onclick="dismissInstall()" style="background: transparent; color: white;">Später</button>
+    </div>
+
+    <div class="container">
+        <h1>
+            <svg class="logo" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+                <!-- Liebherr Logo in Gelb/Gold mit schwarzer Schrift -->
+                <rect x="10" y="10" width="180" height="40" fill="#FFD700" rx="5" stroke="#333" stroke-width="2"/>
+                <text x="100" y="35" text-anchor="middle" fill="#000" font-family="Arial, sans-serif" font-size="20" font-weight="bold">LIEBHERR</text>
+            </svg>
+            🔧 Sensor Einstellungs-App (Offline)
+        </h1>
+        
+        <h2>📊 Sensorkonfiguration</h2>
+        <table id="sensorTable">
+            <thead>
+                <tr>
+                    <th>Sensorname</th>
+                    <th>min Signal (mA)</th>
+                    <th>max Signal (mA)</th>
+                    <th>min Wert (mm)</th>
+                    <th>max Wert (mm)</th>
+                    <th>Sollwert (mm)</th>
+                    <th>Toleranz (±mm)</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody id="sensorTableBody">
+            </tbody>
+        </table>
+        
+        <div class="button-container">
+            <button class="btn btn-success" onclick="addSensor()">➕ Neuer Sensor</button>
+        </div>
+
+        <h2>📈 Messwerte</h2>
+        <table id="measurementTable">
+            <thead>
+                <tr>
+                    <th>Sensor</th>
+                    <th>Eingabewert</th>
+                    <th>Istwert (mm)</th>
+                    <th>Istwert (mA)</th>
+                    <th>Sollwert (mm)</th>
+                    <th>Toleranz (±mm)</th>
+                    <th>Toleranzgrenzen (mm)</th>
+                    <th>Abweichung (mm)</th>
+                    <th>Justieranweisung</th>
+                </tr>
+            </thead>
+            <tbody id="measurementTableBody">
+            </tbody>
+        </table>
+        
+        <div class="button-container">
+            <button class="btn btn-success" onclick="addMeasurement()">➕ Neue Messung</button>
+            <button class="btn" onclick="exportToExcel()">📊 Excel Export</button>
+            <button class="btn" onclick="generatePDFReport()">📄 PDF Report</button>
+        </div>
+
+        <h2>📈 Diagramm</h2>
+        <div class="chart-container">
+            <canvas id="measurementChart"></canvas>
+        </div>
+    </div>
+
+    <!-- PDF Modal -->
+    <div id="pdfModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePdfModal()">&times;</span>
+            <div class="modal-header">
+                <h3>📄 PDF Report Informationen</h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="reportName">Name des Prüfers:</label>
+                    <input type="text" id="reportName" placeholder="Ihr Name">
+                </div>
+                <div class="form-group">
+                    <label for="reportCustomer">Kunde:</label>
+                    <input type="text" id="reportCustomer" placeholder="Kundenname">
+                </div>
+                <div class="form-group">
+                    <label for="reportLocation">Ort:</label>
+                    <input type="text" id="reportLocation" placeholder="Standort">
+                </div>
+                <div class="form-group">
+                    <label for="reportMachine">Maschine:</label>
+                    <input type="text" id="reportMachine" placeholder="Maschinentyp">
+                </div>
+                <div class="form-group">
+                    <label for="reportSerial">Seriennummer:</label>
+                    <input type="text" id="reportSerial" placeholder="Seriennummer">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-modal-secondary" onclick="closePdfModal()">Abbrechen</button>
+                <button class="btn-modal btn-modal-primary" onclick="createPdfReport()">PDF erstellen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Eingebettete Bibliotheken -->
+    <script>
+        // XLSX Library (vereinfachte Version für Offline-Nutzung)
+        var XLSX = {
+            utils: {
+                json_to_sheet: function(data) {
+                    var worksheet = {};
+                    if (data.length === 0) return worksheet;
+                    
+                    var headers = Object.keys(data[0]);
+                    var range = {s: {c: 0, r: 0}, e: {c: headers.length - 1, r: data.length}};
+                    
+                    // Headers
+                    headers.forEach(function(header, colIdx) {
+                        var cellAddress = XLSX.utils.encode_cell({c: colIdx, r: 0});
+                        worksheet[cellAddress] = {v: header, t: 's'};
+                    });
+                    
+                    // Data
+                    data.forEach(function(row, rowIdx) {
+                        headers.forEach(function(header, colIdx) {
+                            var cellAddress = XLSX.utils.encode_cell({c: colIdx, r: rowIdx + 1});
+                            worksheet[cellAddress] = {v: row[header], t: 's'};
+                        });
+                    });
+                    
+                    worksheet['!ref'] = XLSX.utils.encode_range(range);
+                    return worksheet;
+                },
+                book_new: function() {
+                    return {SheetNames: [], Sheets: {}};
+                },
+                book_append_sheet: function(workbook, worksheet, name) {
+                    workbook.SheetNames.push(name);
+                    workbook.Sheets[name] = worksheet;
+                },
+                encode_cell: function(cell) {
+                    return String.fromCharCode(65 + cell.c) + (cell.r + 1);
+                },
+                encode_range: function(range) {
+                    return this.encode_cell(range.s) + ':' + this.encode_cell(range.e);
+                }
+            },
+            writeFile: function(workbook, filename) {
+                // Vereinfachter CSV-Export für Offline-Nutzung
+                var csv = '';
+                var sheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[sheetName];
+                
+                // Konvertiere zu CSV
+                var data = [];
+                var ref = worksheet['!ref'];
+                if (!ref) return;
+                
+                var range = XLSX.utils.decode_range(ref);
+                for (var R = range.s.r; R <= range.e.r; ++R) {
+                    var row = [];
+                    for (var C = range.s.c; C <= range.e.c; ++C) {
+                        var cellAddress = XLSX.utils.encode_cell({c: C, r: R});
+                        var cell = worksheet[cellAddress];
+                        row.push(cell ? cell.v : '');
+                    }
+                    data.push(row.join(','));
+                }
+                csv = data.join('\n');
+                
+                // Download
+                var blob = new Blob([csv], {type: 'text/csv'});
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = filename.replace('.xlsx', '.csv');
+                a.click();
+                URL.revokeObjectURL(url);
+            },
+            decode_range: function(range) {
+                var parts = range.split(':');
+                return {
+                    s: this.decode_cell(parts[0]),
+                    e: this.decode_cell(parts[1])
+                };
+            },
+            decode_cell: function(cell) {
+                var col = cell.charCodeAt(0) - 65;
+                var row = parseInt(cell.slice(1)) - 1;
+                return {c: col, r: row};
+            }
+        };
+
+        // Vereinfachte jsPDF für Offline-Nutzung
+        window.jspdf = {
+            jsPDF: function() {
+                this.internal = {
+                    pages: [''],
+                    currentPage: 0
+                };
+                
+                this.setFontSize = function(size) { return this; };
+                this.setFont = function(font, style) { return this; };
+                this.setTextColor = function(r, g, b) { return this; };
+                this.setFillColor = function(r, g, b) { return this; };
+                this.setDrawColor = function(r, g, b) { return this; };
+                this.rect = function(x, y, w, h, style) { return this; };
+                this.text = function(text, x, y, options) { return this; };
+                this.addPage = function() { 
+                    this.internal.pages.push('');
+                    this.internal.currentPage++;
+                    return this;
+                };
+                this.setPage = function(page) { 
+                    this.internal.currentPage = page - 1;
+                    return this;
+                };
+                this.internal.getNumberOfPages = function() { 
+                    return this.pages.length;
+                }.bind(this.internal);
+                
+                this.save = function(filename) {
+                    // Vereinfachter PDF-Ersatz - Erstelle HTML-Report
+                    var reportContent = this.generateHTMLReport();
+                    var blob = new Blob([reportContent], {type: 'text/html'});
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename.replace('.pdf', '.html');
+                    a.click();
+                    URL.revokeObjectURL(url);
+                };
+                
+                this.generateHTMLReport = function() {
+                    var validMeasurements = measurements.filter(m => m.actualValue && sensors.find(s => s.id === m.sensorId));
+                    var okMeasurements = validMeasurements.filter(m => {
+                        var sensor = sensors.find(s => s.id === m.sensorId);
+                        return Math.abs(m.actualValue - sensor.setpoint) <= sensor.tolerance;
+                    });
+                    
+                    var html = `
+                    <!DOCTYPE html>
+                    <html><head><meta charset="UTF-8"><title>Liebherr Sensor Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        .header { background: #FFD700; padding: 20px; text-align: center; }
+                        .logo { font-weight: bold; font-size: 24px; }
+                        .summary { background: #007bff; color: white; padding: 15px; margin: 20px 0; }
+                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background: #f2f2f2; }
+                        .ok { color: green; font-weight: bold; }
+                        .error { color: red; font-weight: bold; }
+                        .warning { background: #fff3cd; padding: 10px; margin: 10px 0; }
+                    </style>
+                    </head><body>
+                    <div class="header">
+                        <div class="logo">LIEBHERR</div>
+                        <h1>Sensor Messwerte Report</h1>
+                        <p>Erstellt am: ${new Date().toLocaleDateString('de-DE')} um ${new Date().toLocaleTimeString('de-DE')}</p>
+                    </div>
+                    <div class="summary">
+                        <h2>Messergebnis Übersicht</h2>
+                        <p>Gesamt: ${validMeasurements.length} Sensoren | OK: ${okMeasurements.length} | Fehler: ${validMeasurements.length - okMeasurements.length}</p>
+                    </div>
+                    <h2>Detaillierte Messwerte</h2>
+                    <table>
+                        <tr><th>Sensor</th><th>Eingabe</th><th>Ist (mm)</th><th>Soll (mm)</th><th>Abweichung</th><th>Status</th></tr>`;
+                    
+                    validMeasurements.forEach(function(measurement) {
+                        var sensor = sensors.find(s => s.id === measurement.sensorId);
+                        var deviation = measurement.actualValue - sensor.setpoint;
+                        var isOk = Math.abs(deviation) <= sensor.tolerance;
+                        
+                        html += `<tr>
+                            <td>${sensor.name}</td>
+                            <td>${measurement.inputValue} ${measurement.inputUnit}</td>
+                            <td>${measurement.actualValue.toFixed(2)}</td>
+                            <td>${sensor.setpoint.toFixed(1)}</td>
+                            <td class="${isOk ? 'ok' : 'error'}">${deviation.toFixed(2)}</td>
+                            <td class="${isOk ? 'ok' : 'error'}">${isOk ? 'OK' : 'FEHLER'}</td>
+                        </tr>`;
+                    });
+                    
+                    html += '</table>';
+                    
+                    var hasErrors = validMeasurements.some(m => {
+                        var sensor = sensors.find(s => s.id === m.sensorId);
+                        return Math.abs(m.actualValue - sensor.setpoint) > sensor.tolerance;
+                    });
+                    
+                    if (hasErrors) {
+                        html += '<div class="warning"><h3>Justieranweisungen</h3>';
+                        validMeasurements.forEach(function(measurement) {
+                            var sensor = sensors.find(s => s.id === measurement.sensorId);
+                            var deviation = measurement.actualValue - sensor.setpoint;
+                            var isOk = Math.abs(deviation) <= sensor.tolerance;
+                            
+                            if (!isOk) {
+                                var instruction = '';
+                                if (deviation < 0) {
+                                    instruction = `${sensor.name}: Sensor ${Math.abs(deviation).toFixed(2)} mm nach außen justieren`;
+                                } else {
+                                    instruction = `${sensor.name}: Sensor ${deviation.toFixed(2)} mm nach innen justieren`;
+                                }
+                                html += `<p>${instruction}</p>`;
+                            }
+                        });
+                        html += '</div>';
+                    }
+                    
+                    html += '</body></html>';
+                    return html;
+                };
+            }
+        };
+
+        // Vereinfachte Chart.js für Offline-Nutzung
+        window.Chart = function(ctx, config) {
+            this.ctx = ctx;
+            this.config = config;
+            this.destroy = function() {};
+            
+            // Zeichne einfaches Canvas-Diagramm
+            this.drawSimpleChart = function() {
+                var canvas = ctx.canvas;
+                var rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#f8f9fa';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#333';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Vereinfachtes Diagramm (Offline-Modus)', canvas.width/2, 50);
+                
+                if (config.data && config.data.labels && config.data.datasets[0]) {
+                    var data = config.data.datasets[0].data;
+                    var labels = config.data.labels;
+                    var maxValue = Math.max(...data.filter(d => d !== null));
+                    var minValue = Math.min(...data.filter(d => d !== null));
+                    var range = maxValue - minValue || 1;
+                    
+                    var barHeight = 30;
+                    var startY = 100;
+                    var chartWidth = canvas.width - 200;
+                    var chartX = 100;
+                    
+                    labels.forEach(function(label, i) {
+                        if (data[i] !== null) {
+                            var barWidth = ((data[i] - minValue) / range) * chartWidth;
+                            var y = startY + i * (barHeight + 10);
+                            
+                            var isOk = config.data.datasets[0].backgroundColor[i].includes('40, 167, 69');
+                            ctx.fillStyle = isOk ? '#28a745' : '#dc3545';
+                            ctx.fillRect(chartX, y, barWidth, barHeight);
+                            
+                            ctx.fillStyle = '#333';
+                            ctx.font = '12px Arial';
+                            ctx.textAlign = 'right';
+                            ctx.fillText(label, chartX - 10, y + barHeight/2 + 4);
+                            
+                            ctx.textAlign = 'left';
+                            ctx.fillText(data[i].toFixed(2) + 'mm', chartX + barWidth + 5, y + barHeight/2 + 4);
+                        }
+                    });
+                }
+            };
+            
+            this.drawSimpleChart();
+        };
+    </script>
+
+    <script>
+        // PWA Installation Logic
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPrompt').style.display = 'block';
+        });
+
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('App installed');
+                    }
+                    deferredPrompt = null;
+                    document.getElementById('installPrompt').style.display = 'none';
+                });
+            }
+        }
+
+        function dismissInstall() {
+            document.getElementById('installPrompt').style.display = 'none';
+        }
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // Online/Offline Detection
+        function updateConnectionStatus() {
+            const indicator = document.getElementById('connectionStatus');
+            if (navigator.onLine) {
+                indicator.textContent = 'Online';
+                indicator.className = 'offline-indicator online';
+            } else {
+                indicator.textContent = 'Offline';
+                indicator.className = 'offline-indicator offline';
+            }
+        }
+
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        updateConnectionStatus();
+
+        // IndexedDB for persistent storage
+        class SensorDB {
+            constructor() {
+                this.dbName = 'SensorAppDB';
+                this.version = 1;
+                this.db = null;
+            }
+            
+            async init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, this.version);
+                    
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        resolve(request.result);
+                    };
+                    
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        
+                        if (!db.objectStoreNames.contains('sensors')) {
+                            db.createObjectStore('sensors', { keyPath: 'id' });
+                        }
+                        
+                        if (!db.objectStoreNames.contains('measurements')) {
+                            db.createObjectStore('measurements', { keyPath: 'id' });
+                        }
+                    };
+                });
+            }
+            
+            async saveSensors(sensors) {
+                if (!this.db) await this.init();
+                const transaction = this.db.transaction(['sensors'], 'readwrite');
+                const store = transaction.objectStore('sensors');
+                
+                // Clear existing data
+                await store.clear();
+                
+                sensors.forEach(sensor => store.put(sensor));
+                return transaction.complete;
+            }
+            
+            async loadSensors() {
+                if (!this.db) await this.init();
+                const transaction = this.db.transaction(['sensors'], 'readonly');
+                const store = transaction.objectStore('sensors');
+                
+                return new Promise((resolve, reject) => {
+                    const request = store.getAll();
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+            
+            async saveMeasurements(measurements) {
+                if (!this.db) await this.init();
+                const transaction = this.db.transaction(['measurements'], 'readwrite');
+                const store = transaction.objectStore('measurements');
+                
+                // Clear existing data
+                await store.clear();
+                
+                measurements.forEach(measurement => store.put(measurement));
+                return transaction.complete;
+            }
+            
+            async loadMeasurements() {
+                if (!this.db) await this.init();
+                const transaction = this.db.transaction(['measurements'], 'readonly');
+                const store = transaction.objectStore('measurements');
+                
+                return new Promise((resolve, reject) => {
+                    const request = store.getAll();
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+        }
+
+        // Initialize Database
+        const sensorDB = new SensorDB();
+
+        // Default sensor data
+        let sensors = [
+            {id: 1, name: 'DIST 1', minSignal: 4, maxSignal: 20, minValue: 0.2, maxValue: 7, setpoint: 3, tolerance: 0.2, editing: false},
+            {id: 2, name: 'DIST 2', minSignal: 4, maxSignal: 20, minValue: 0.2, maxValue: 7, setpoint: 3.5, tolerance: 0.2, editing: false},
+            {id: 3, name: 'DIST 3', minSignal: 4, maxSignal: 20, minValue: 0.2, maxValue: 7, setpoint: 3, tolerance: 0.2, editing: false},
+            {id: 4, name: 'DIST 4', minSignal: 4, maxSignal: 20, minValue: 0.2, maxValue: 7, setpoint: 3.5, tolerance: 0.2, editing: false}
+        ];
+
+        let measurements = [
+            {id: 1, sensorId: 1, inputValue: null, inputUnit: 'mA', actualValue: null},
+            {id: 2, sensorId: 2, inputValue: null, inputUnit: 'mA', actualValue: null},
+            {id: 3, sensorId: 3, inputValue: null, inputUnit: 'mA', actualValue: null},
+            {id: 4, sensorId: 4, inputValue: null, inputUnit: 'mA', actualValue: null}
+        ];
+        let nextSensorId = 5;
+        let nextMeasurementId = 5;
+
+        // Load data from IndexedDB on startup
+        async function loadDataFromDB() {
+            try {
+                const savedSensors = await sensorDB.loadSensors();
+                const savedMeasurements = await sensorDB.loadMeasurements();
+                
+                if (savedSensors.length > 0) {
+                    sensors = savedSensors;
+                    nextSensorId = Math.max(...sensors.map(s => s.id)) + 1;
+                }
+                
+                if (savedMeasurements.length > 0) {
+                    measurements = savedMeasurements;
+                    nextMeasurementId = Math.max(...measurements.map(m => m.id)) + 1;
+                }
+                
+                renderSensorTable();
+                renderMeasurementTable();
+                updateChart();
+            } catch (error) {
+                console.log('Error loading data from DB:', error);
+                // Use default data if DB fails
+                renderSensorTable();
+                renderMeasurementTable();
+                updateChart();
+            }
+        }
+
+        // Save data to IndexedDB
+        async function saveDataToDB() {
+            try {
+                await sensorDB.saveSensors(sensors);
+                await sensorDB.saveMeasurements(measurements);
+            } catch (error) {
+                console.log('Error saving data to DB:', error);
+            }
+        }
+
+        // Sensortabelle rendern
+        function renderSensorTable() {
+            const tbody = document.getElementById('sensorTableBody');
+            tbody.innerHTML = '';
+
+            sensors.forEach(sensor => {
+                const row = document.createElement('tr');
+                
+                if (sensor.editing) {
+                    row.innerHTML = `
+                        <td><input type="text" value="${sensor.name}" onchange="updateSensor(${sensor.id}, 'name', this.value)"></td>
+                        <td><input type="number" step="0.1" value="${sensor.minSignal}" onchange="updateSensor(${sensor.id}, 'minSignal', parseFloat(this.value))"></td>
+                        <td><input type="number" step="0.1" value="${sensor.maxSignal}" onchange="updateSensor(${sensor.id}, 'maxSignal', parseFloat(this.value))"></td>
+                        <td><input type="number" step="0.1" value="${sensor.minValue}" onchange="updateSensor(${sensor.id}, 'minValue', parseFloat(this.value))"></td>
+                        <td><input type="number" step="0.1" value="${sensor.maxValue}" onchange="updateSensor(${sensor.id}, 'maxValue', parseFloat(this.value))"></td>
+                        <td><input type="number" step="0.1" value="${sensor.setpoint}" onchange="updateSensor(${sensor.id}, 'setpoint', parseFloat(this.value))"></td>
+                        <td><input type="number" step="0.01" value="${sensor.tolerance}" onchange="updateSensor(${sensor.id}, 'tolerance', parseFloat(this.value))"></td>
+                        <td>
+                            <button class="btn btn-success" onclick="toggleSensorEdit(${sensor.id})">💾</button>
+                            <button class="btn btn-danger" onclick="deleteSensor(${sensor.id})">🗑️</button>
+                        </td>
+                    `;
+                } else {
+                    row.innerHTML = `
+                        <td>${sensor.name}</td>
+                        <td>${sensor.minSignal}</td>
+                        <td>${sensor.maxSignal}</td>
+                        <td>${sensor.minValue}</td>
+                        <td>${sensor.maxValue}</td>
+                        <td>${sensor.setpoint}</td>
+                        <td>${sensor.tolerance}</td>
+                        <td>
+                            <button class="btn" onclick="toggleSensorEdit(${sensor.id})">✏️</button>
+                            <button class="btn btn-danger" onclick="deleteSensor(${sensor.id})">🗑️</button>
+                        </td>
+                    `;
+                }
+                tbody.appendChild(row);
+            });
+        }
+
+        // Sensor Editier-Modus umschalten
+        function toggleSensorEdit(id) {
+            const sensor = sensors.find(s => s.id === id);
+            if (sensor) {
+                sensor.editing = !sensor.editing;
+                renderSensorTable();
+                saveDataToDB(); // Auto-save
+            }
+        }
+
+        // Messwerte-Tabelle rendern
+        function renderMeasurementTable() {
+            const tbody = document.getElementById('measurementTableBody');
+            tbody.innerHTML = '';
+
+            measurements.forEach(measurement => {
+                const sensor = sensors.find(s => s.id === measurement.sensorId);
+                const row = document.createElement('tr');
+                
+                let actualValue = measurement.actualValue || 0;
+                let deviation = 0;
+                let isWithinTolerance = true;
+                let showCalculations = measurement.inputValue && measurement.inputValue > 0 && sensor;
+                
+                if (showCalculations) {
+                    deviation = actualValue - sensor.setpoint;
+                    isWithinTolerance = Math.abs(deviation) <= sensor.tolerance;
+                }
+                
+                // Toleranzgrenzen berechnen
+                let toleranceMin = sensor ? sensor.setpoint - sensor.tolerance : 0;
+                let toleranceMax = sensor ? sensor.setpoint + sensor.tolerance : 0;
+                
+                // Istwert in mA berechnen
+                let actualValueInMA = 0;
+                if (sensor && showCalculations && actualValue !== null) {
+                    if (measurement.inputUnit === 'mA') {
+                        actualValueInMA = measurement.inputValue;
+                    } else {
+                        const valueRange = sensor.maxValue - sensor.minValue;
+                        const signalRange = sensor.maxSignal - sensor.minSignal;
+                        if (valueRange !== 0) {
+                            const normalizedValue = (actualValue - sensor.minValue) / valueRange;
+                            actualValueInMA = sensor.minSignal + (normalizedValue * signalRange);
+                        }
+                    }
+                }
+                
+                // Justieranweisung erstellen
+                let adjustmentInstruction = '';
+                if (showCalculations) {
+                    if (isWithinTolerance) {
+                        adjustmentInstruction = 'Sensor innerhalb Toleranz';
+                    } else if (deviation < 0) {
+                        adjustmentInstruction = `Sensor ${Math.abs(deviation).toFixed(2)} mm nach außen justieren`;
+                    } else {
+                        adjustmentInstruction = `Sensor ${deviation.toFixed(2)} mm nach innen justieren`;
+                    }
+                }
+                
+                row.innerHTML = `
+                    <td>
+                        <select onchange="updateMeasurement(${measurement.id}, 'sensorId', parseInt(this.value))">
+                            <option value="">Sensor wählen...</option>
+                            ${sensors.map(s => `<option value="${s.id}" ${s.id === measurement.sensorId ? 'selected' : ''}>${s.name}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td>
+                        <div class="input-unit">
+                            <input type="number" step="0.01" value="${measurement.inputValue || ''}" 
+                                   class="measurement-input" 
+                                   onchange="updateMeasurementInput(${measurement.id}, this.value, document.getElementById('unit-${measurement.id}').value)">
+                            <select id="unit-${measurement.id}" class="unit-selector" 
+                                    onchange="updateMeasurementInput(${measurement.id}, document.querySelector('input[onchange*=\\'${measurement.id}\\']').value, this.value)">
+                                <option value="mA" ${measurement.inputUnit === 'mA' ? 'selected' : ''}>mA</option>
+                                <option value="mm" ${measurement.inputUnit === 'mm' ? 'selected' : ''}>mm</option>
+                            </select>
+                        </div>
+                    </td>
+                    <td class="${showCalculations ? (isWithinTolerance ? 'value-ok' : 'value-error') : ''}">${showCalculations ? actualValue.toFixed(2) : '-'}</td>
+                    <td>${showCalculations ? actualValueInMA.toFixed(2) : '-'}</td>
+                    <td>${sensor ? sensor.setpoint.toFixed(1) : '-'}</td>
+                    <td class="tolerance-display">±${sensor ? sensor.tolerance.toFixed(2) : '-'}</td>
+                    <td>${sensor ? `${toleranceMin.toFixed(2)} - ${toleranceMax.toFixed(2)}` : '-'}</td>
+                    <td class="${showCalculations ? (isWithinTolerance ? 'value-ok' : 'value-error') : ''}">${showCalculations ? deviation.toFixed(2) : '-'}</td>
+                    <td class="${showCalculations ? (isWithinTolerance ? 'value-ok' : 'value-error') : ''}">${adjustmentInstruction}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Sensor aktualisieren
+        function updateSensor(id, field, value) {
+            const sensor = sensors.find(s => s.id === id);
+            if (sensor) {
+                sensor[field] = value;
+                measurements.forEach(measurement => {
+                    if (measurement.sensorId === id) {
+                        updateMeasurementValue(measurement);
+                    }
+                });
+                renderMeasurementTable();
+                updateChart();
+                saveDataToDB(); // Auto-save
+            }
+        }
+
+        // Sensor löschen
+        function deleteSensor(id) {
+            if (confirm('Sensor wirklich löschen?')) {
+                sensors = sensors.filter(s => s.id !== id);
+                measurements = measurements.filter(m => m.sensorId !== id);
+                renderSensorTable();
+                renderMeasurementTable();
+                updateChart();
+                saveDataToDB(); // Auto-save
+            }
+        }
+
+        // Neuen Sensor hinzufügen
+        function addSensor() {
+            const newSensor = {
+                id: nextSensorId++,
+                name: `DIST ${nextSensorId - 1}`,
+                minSignal: 4,
+                maxSignal: 20,
+                minValue: 0.2,
+                maxValue: 7,
+                setpoint: 3,
+                tolerance: 0.2,
+                editing: false
+            };
+            sensors.push(newSensor);
+            renderSensorTable();
+            renderMeasurementTable();
+            updateChart();
+            saveDataToDB(); // Auto-save
+        }
+
+        // Messung aktualisieren
+        function updateMeasurement(id, field, value) {
+            const measurement = measurements.find(m => m.id === id);
+            if (measurement) {
+                measurement[field] = value;
+                if (field === 'sensorId') {
+                    updateMeasurementValue(measurement);
+                }
+                renderMeasurementTable();
+                updateChart();
+                saveDataToDB(); // Auto-save
+            }
+        }
+
+        // Messwert-Eingabe aktualisieren
+        function updateMeasurementInput(id, inputValue, unit) {
+            const measurement = measurements.find(m => m.id === id);
+            const sensor = sensors.find(s => s.id === measurement.sensorId);
+            
+            if (measurement) {
+                let parsedValue = parseFloat(inputValue) || null;
+                
+                if (parsedValue !== null && sensor) {
+                    if (unit === 'mA') {
+                        if (parsedValue < sensor.minSignal) parsedValue = sensor.minSignal;
+                        if (parsedValue > sensor.maxSignal) parsedValue = sensor.maxSignal;
+                    } else if (unit === 'mm') {
+                        if (parsedValue < sensor.minValue) parsedValue = sensor.minValue;
+                        if (parsedValue > sensor.maxValue) parsedValue = sensor.maxValue;
+                    }
+                }
+                
+                measurement.inputValue = parsedValue;
+                measurement.inputUnit = unit;
+                updateMeasurementValue(measurement);
+                renderMeasurementTable();
+                updateChart();
+                saveDataToDB(); // Auto-save
+            }
+        }
+
+        // Messwert berechnen
+        function updateMeasurementValue(measurement) {
+            const sensor = sensors.find(s => s.id === measurement.sensorId);
+            if (!sensor || !measurement.inputValue || measurement.inputValue <= 0) {
+                measurement.actualValue = null;
+                return;
+            }
+
+            if (measurement.inputUnit === 'mA') {
+                const signalRange = sensor.maxSignal - sensor.minSignal;
+                const valueRange = sensor.maxValue - sensor.minValue;
+                const normalizedSignal = (measurement.inputValue - sensor.minSignal) / signalRange;
+                measurement.actualValue = sensor.minValue + (normalizedSignal * valueRange);
+            } else {
+                measurement.actualValue = measurement.inputValue;
+            }
+        }
+
+        // Neue Messung hinzufügen
+        function addMeasurement() {
+            const newMeasurement = {
+                id: nextMeasurementId++,
+                sensorId: null,
+                inputValue: null,
+                inputUnit: 'mA',
+                actualValue: null
+            };
+            measurements.push(newMeasurement);
+            renderMeasurementTable();
+            updateChart();
+            saveDataToDB(); // Auto-save
+        }
+
+        // PDF Report generieren
+        function generatePDFReport() {
+            document.getElementById('pdfModal').style.display = 'block';
+        }
+
+        function closePdfModal() {
+            document.getElementById('pdfModal').style.display = 'none';
+            document.getElementById('reportName').value = '';
+            document.getElementById('reportCustomer').value = '';
+            document.getElementById('reportLocation').value = '';
+            document.getElementById('reportMachine').value = '';
+            document.getElementById('reportSerial').value = '';
+        }
+
+        function createPdfReport() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.save(`LIEBHERR_Sensor_Report_${new Date().toISOString().split('T')[0]}.html`);
+            closePdfModal();
+        }
+
+        // Chart aktualisieren
+        let chart = null;
+
+        function updateChart() {
+            const ctx = document.getElementById('measurementChart').getContext('2d');
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            const chartData = measurements.map(measurement => {
+                const sensor = sensors.find(s => s.id === measurement.sensorId);
+                const hasValidData = measurement.inputValue && measurement.inputValue > 0 && sensor && measurement.actualValue !== null;
+                
+                return {
+                    label: sensor ? sensor.name : 'Unbekannt',
+                    actualValue: hasValidData ? measurement.actualValue : null,
+                    setpoint: sensor ? sensor.setpoint : 0,
+                    toleranceMin: sensor ? sensor.setpoint - sensor.tolerance : 0,
+                    toleranceMax: sensor ? sensor.setpoint + sensor.tolerance : 0,
+                    isOk: hasValidData ? Math.abs(measurement.actualValue - sensor.setpoint) <= sensor.tolerance : true,
+                    hasData: hasValidData
+                };
+            }).filter(d => d.hasData);
+            
+            const labels = chartData.map(d => d.label);
+            
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Istwert (mm)',
+                        data: chartData.map(d => d.actualValue),
+                        backgroundColor: chartData.map(d => d.isOk ? 'rgba(40, 167, 69, 0.8)' : 'rgba(220, 53, 69, 0.8)'),
+                        borderColor: chartData.map(d => d.isOk ? '#28a745' : '#dc3545'),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // Excel Export
+        function exportToExcel() {
+            const data = measurements.map(measurement => {
+                const sensor = sensors.find(s => s.id === measurement.sensorId);
+                
+                if (!measurement.actualValue || !sensor) {
+                    return null;
+                }
+                
+                const deviation = measurement.actualValue - sensor.setpoint;
+                const toleranceMin = sensor.setpoint - sensor.tolerance;
+                const toleranceMax = sensor.setpoint + sensor.tolerance;
+                
+                let adjustmentInstruction = '';
+                if (Math.abs(deviation) > 0.01) {
+                    if (deviation < 0) {
+                        adjustmentInstruction = `Sensor ${Math.abs(deviation).toFixed(2)} mm nach außen justieren`;
+                    } else {
+                        adjustmentInstruction = `Sensor ${deviation.toFixed(2)} mm nach innen justieren`;
+                    }
+                } else {
+                    adjustmentInstruction = 'Sensor innerhalb Toleranz';
+                }
+                
+                return {
+                    'Sensor': sensor.name,
+                    'Eingabewert': `${measurement.inputValue} ${measurement.inputUnit}`,
+                    'Istwert (mm)': measurement.actualValue.toFixed(2),
+                    'Sollwert (mm)': sensor.setpoint.toFixed(1),
+                    'Toleranz (±mm)': sensor.tolerance.toFixed(2),
+                    'Toleranzgrenzen (mm)': `${toleranceMin.toFixed(2)} - ${toleranceMax.toFixed(2)}`,
+                    'Abweichung (mm)': deviation.toFixed(2),
+                    'Justieranweisung': adjustmentInstruction
+                };
+            }).filter(row => row !== null);
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Messwerte");
+            
+            const fileName = `Sensor_Messwerte_${new Date().toISOString().split('T')[0]}.csv`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        // Modal event handlers
+        window.onclick = function(event) {
+            const modal = document.getElementById('pdfModal');
+            if (event.target === modal) {
+                closePdfModal();
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            const modal = document.getElementById('pdfModal');
+            if (modal.style.display === 'block') {
+                if (event.key === 'Enter') {
+                    createPdfReport();
+                } else if (event.key === 'Escape') {
+                    closePdfModal();
+                }
+            }
+        });
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDataFromDB();
+        });
+    </script>
+</body>
+</html>

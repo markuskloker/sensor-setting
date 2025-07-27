@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Liebherr Sensor App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #007bff, #FFD700);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .offline-container {
+            text-align: center;
+            max-width: 500px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .offline-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .liebherr-logo {
+            background: #FFD700;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            display: inline-block;
+        }
+
+        p {
+            font-size: 1.2em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .retry-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .retry-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.8);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-indicator {
+            margin-top: 30px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .online {
+            background: rgba(40, 167, 69, 0.3);
+            border: 1px solid rgba(40, 167, 69, 0.5);
+        }
+
+        .offline-status {
+            background: rgba(220, 53, 69, 0.3);
+            border: 1px solid rgba(220, 53, 69, 0.5);
+        }
+
+        .features {
+            margin-top: 30px;
+            text-align: left;
+        }
+
+        .features h3 {
+            margin-bottom: 15px;
+            color: #FFD700;
+        }
+
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .features li {
+            padding: 5px 0;
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .offline-icon {
+            animation: pulse 2s infinite;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="liebherr-logo">LIEBHERR</div>
+        
+        <div class="offline-icon">📡</div>
+        
+        <h1>Offline Modus</h1>
+        
+        <p>Die Sensor Einstellungs-App ist derzeit offline, aber alle Ihre Daten sind sicher gespeichert und die App funktioniert weiterhin vollständig!</p>
+        
+        <div id="connectionStatus" class="status-indicator offline-status">
+            <strong>🔴 Offline</strong><br>
+            Keine Internetverbindung
+        </div>
+        
+        <div style="margin: 30px 0;">
+            <a href="./" class="retry-btn" onclick="checkConnection()">🔄 App laden</a>
+            <button class="retry-btn" onclick="forceReload()">⚡ Neu laden</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Lade App...</p>
+        </div>
+        
+        <div class="features">
+            <h3>🛠️ Verfügbare Funktionen (Offline):</h3>
+            <ul>
+                <li>Sensoren konfigurieren und bearbeiten</li>
+                <li>Messwerte eingeben und berechnen</li>
+                <li>Diagramme anzeigen</li>
+                <li>Excel/CSV Export</li>
+                <li>PDF Reports erstellen</li>
+                <li>Automatische Datenspeicherung</li>
+                <li>Vollständige Offline-Funktionalität</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Online/Offline Status überwachen
+        function updateConnectionStatus() {
+            const indicator = document.getElementById('connectionStatus');
+            
+            if (navigator.onLine) {
+                indicator.innerHTML = '<strong>🟢 Online</strong><br>Internetverbindung verfügbar';
+                indicator.className = 'status-indicator online';
+            } else {
+                indicator.innerHTML = '<strong>🔴 Offline</strong><br>Keine Internetverbindung';
+                indicator.className = 'status-indicator offline-status';
+            }
+        }
+
+        // Verbindung prüfen
+        function checkConnection() {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+            
+            // Versuche die Hauptseite zu laden
+            fetch('./', { cache: 'no-cache' })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = './';
+                    } else {
+                        throw new Error('App nicht verfügbar');
+                    }
+                })
+                .catch(() => {
+                    loading.style.display = 'none';
+                    alert('App kann nicht geladen werden. Bitte versuchen Sie es später erneut.');
+                });
+        }
+
+        // Erzwinge Neuladen
+        function forceReload() {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+            
+            // Cache leeren und neu laden
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        caches.delete(name);
+                    });
+                }).finally(() => {
+                    window.location.reload(true);
+                });
+            } else {
+                window.location.reload(true);
+            }
+        }
+
+        // Event Listener
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        
+        // Initiale Status-Prüfung
+        updateConnectionStatus();
+        
+        // Auto-Retry wenn online
+        window.addEventListener('online', () => {
+            setTimeout(() => {
+                if (navigator.onLine) {
+                    checkConnection();
+                }
+            }, 1000);
+        });
+
+        // Service Worker Message Handler
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', event => {
+                if (event.data && event.data.type === 'APP_UPDATED') {
+                    if (confirm('Eine neue Version der App ist verfügbar. Jetzt aktualisieren?')) {
+                        window.location.reload();
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
